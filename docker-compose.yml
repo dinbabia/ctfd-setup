@@ -1,0 +1,91 @@
+services:
+  ctfd:
+    image: ctfd/ctfd
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      UPLOAD_FOLDER: /var/uploads
+      DATABASE_URL: mysql+pymysql://ctfd:${CTFD_DB_PASSWORD:?Set CTFD_DB_PASSWORD in .env}@db/ctfd
+      REDIS_URL: redis://cache:6379
+      SECRET_KEY: ${CTFD_SECRET_KEY:?Set CTFD_SECRET_KEY in .env}
+      WORKERS: "1"
+      LOG_FOLDER: /var/log/CTFd
+      ACCESS_LOG: "-"
+      ERROR_LOG: "-"
+    volumes:
+      - ctfd-uploads:/var/uploads
+      - ctfd-logs:/var/log/CTFd
+    depends_on:
+      db:
+        condition: service_healthy
+      cache:
+        condition: service_healthy
+    networks:
+      - ctf
+
+  db:
+    image: mariadb:10.11
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:?Set MARIADB_ROOT_PASSWORD in .env}
+      MARIADB_USER: ctfd
+      MARIADB_PASSWORD: ${CTFD_DB_PASSWORD:?Set CTFD_DB_PASSWORD in .env}
+      MARIADB_DATABASE: ctfd
+      MARIADB_AUTO_UPGRADE: "1"
+    volumes:
+      - mariadb-data:/var/lib/mysql
+    command:
+      - mysqld
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --wait_timeout=28800
+      - --log-warnings=0
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - ctf
+
+  cache:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ctf
+
+  dotnet-app:
+    build:
+      context: ./apps/dotnet
+    restart: unless-stopped
+    ports:
+      - "8001:8080"
+    networks:
+      - ctf
+
+  flask-app:
+    build:
+      context: ./apps/flask
+    restart: unless-stopped
+    ports:
+      - "8002:5000"
+    networks:
+      - ctf
+
+volumes:
+  ctfd-uploads:
+  ctfd-logs:
+  mariadb-data:
+  redis-data:
+
+networks:
+  ctf:
