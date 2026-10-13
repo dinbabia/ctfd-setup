@@ -12,6 +12,7 @@ venv/
 # .NET build output
 **/bin/
 **/obj/
+apps/dotnet/data/
 
 # IDE and operating-system files
 .vscode/

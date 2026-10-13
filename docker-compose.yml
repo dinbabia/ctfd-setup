@@ -67,8 +67,16 @@ services:
     build:
       context: ./apps/dotnet
     restart: unless-stopped
+    environment:
+      FLAG4: ${FLAG4:?Set FLAG4 in .env}
+      FLAG5: ${FLAG5:?Set FLAG5 in .env}
+      DOTNET_ADMIN_USERNAME: ${DOTNET_ADMIN_USERNAME:?Set DOTNET_ADMIN_USERNAME in .env}
+      DOTNET_ADMIN_PASSWORD: ${DOTNET_ADMIN_PASSWORD:?Set DOTNET_ADMIN_PASSWORD in .env}
+      DOTNET_DB_PATH: /app/data/dotnet.db
     ports:
       - "8001:8080"
+    volumes:
+      - dotnet-data:/app/data
     networks:
       - ctf
 
@@ -91,6 +99,7 @@ services:
 volumes:
   ctfd-uploads:
   ctfd-logs:
+  dotnet-data:
   mariadb-data:
   redis-data:
 

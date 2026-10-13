@@ -9,8 +9,9 @@ replace or extend them with your tournament challenges as needed.
 1. Copy `.env.example` to `.env`.
 2. Replace all example values with long, unique secrets. Keep the database
    passwords alphanumeric because CTFd uses the password in a database URL.
-   Replace `FLAG1`, `FLAG2`, `FLAG3`, and the account password values with
-   values for your event; Compose supplies them to Flask from `.env`.
+   Replace `FLAG1` through `FLAG5`, the .NET admin username/password, and
+   account password values with values for your event; Compose supplies the
+   flags and credentials to the vulnerable apps from `.env`.
 3. Ensure Docker Engine and the Docker Compose plugin are installed.
 
 ## Initialize Git
@@ -51,6 +52,28 @@ Use the Docker host's LAN IP address from tournament participants' devices:
 The container-only service names are `dotnet-app:8080` and `flask-app:5000`.
 For challenge links shown to participants, use the host's LAN IP and the
 published ports above instead.
+
+The .NET target provides an interactive Swagger UI at `/swagger` (OpenAPI JSON
+is available at `/swagger/v1/swagger.json`). Expand an endpoint and select
+`Try it out` to send requests from the documentation. Register with username,
+password, and email, then
+authenticate at `/api/auth` and use the returned Bearer token with
+`/api/profile`. Registration accepts optional birthday, address, occupation,
+and gender fields. The profile also reveals the account's
+`can_access_reports` and `can_access_admin_panel` settings, which are not listed
+in the registration documentation. `can_access_admin_panel` remains false
+even if supplied during registration. The report flag (`FLAG4`) is returned by
+`/api/reports` only for accounts with report access enabled. The
+`/api/reports/{id}` endpoint uses a separate SQLite database owned by the .NET
+app; report access is required there as well. Its users table stores passwords
+as Base64 strings. After recovering and decoding the configured .NET admin
+credentials, sign in to see `FLAG5` in that account's `/api/profile` response.
+The SQLite file is stored in the `dotnet-data` volume and is separate from
+CTFd's MariaDB and the Flask app. Authentication locks the client's rate-limit
+key after five failed attempts for 15 minutes; registration allows three
+successful accounts in five minutes before a 15-minute lockout. Both limits
+intentionally trust `X-Forwarded-For` as the client key, so changing that
+header bypasses the limits.
 
 The Flask homepage shows a hint in a browser. Request it with
 `curl http://localhost:8002/` to receive flag 1 and the guest credentials.
