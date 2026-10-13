@@ -9,6 +9,8 @@ replace or extend them with your tournament challenges as needed.
 1. Copy `.env.example` to `.env`.
 2. Replace all example values with long, unique secrets. Keep the database
    passwords alphanumeric because CTFd uses the password in a database URL.
+   Replace `FLAG1`, `FLAG2`, `FLAG3`, and the account password values with
+   values for your event; Compose supplies them to Flask from `.env`.
 3. Ensure Docker Engine and the Docker Compose plugin are installed.
 
 ## Initialize Git
@@ -50,14 +52,37 @@ The container-only service names are `dotnet-app:8080` and `flask-app:5000`.
 For challenge links shown to participants, use the host's LAN IP and the
 published ports above instead.
 
-The apps include a deliberately unsafe reflected-HTML search page at `/search`
-for confirming the targets are reachable. Do not expose these starter targets
-to the public internet: they are intentionally vulnerable. Restrict access to
-the tournament network and allow inbound TCP ports 8000-8002 through the host
-firewall only for that network. The Compose network is not isolated from
-outbound network access so its published web ports work with Docker Desktop.
-MariaDB and Redis remain un-published and are accessible only to other
-containers on the Compose network.
+The Flask homepage shows a hint in a browser. Request it with
+`curl http://localhost:8002/` to receive flag 1 and the guest credentials.
+The response is selected using the request's User-Agent, so this is a lab
+discovery challenge rather than a security boundary.
+
+The Flask target's staff lab follows a guest-to-employee-to-Administrator
+chain: `adventurer` (Guest), `warrior` (Employee), then `legend`
+(Administrator). After the first factor, open the mock inbox at `/mail` to
+view the four-digit OTP and follow its link back to `/2fa`. The verification
+form constructs a Base64-encoded `username:code` token server-side; guests can
+exploit the intentionally broken identity binding to become an Employee, but
+cannot use it to become an Administrator. Codes expire after one minute, and
+the lab intentionally does not rate-limit attempts.
+
+Warrior's dashboard displays flag 2 after successful login. The dashboard
+links to My Profile and employee blog posts. My Profile defaults to the signed-in
+user's details in JSON and has an editable GUID field; blog author IDs reveal
+GUIDs for the IDOR. The employee blog includes Legend's password in Base64.
+Legend is the sole Administrator and displays only flag 3 when compromised.
+User passwords are read from `.env`, not stored in the application source.
+The Flask container uses one worker so its in-memory, short-lived codes are
+consistent across requests.
+
+The Flask player test page also links to a deliberately unsafe reflected-HTML
+search page at `/search`. Do not expose these starter targets to the public
+internet: they are intentionally vulnerable. Restrict access to the tournament
+network and allow inbound TCP ports 8000-8002 through the host firewall only
+for that network. The Compose network is not isolated from outbound network
+access so its published web ports work with Docker Desktop. MariaDB and Redis
+remain un-published and are accessible only to other containers on the Compose
+network.
 
 CTFd uploads, logs, MariaDB data, and Redis data are stored in named Docker
 volumes so they persist across container restarts.

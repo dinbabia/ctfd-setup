@@ -76,6 +76,13 @@ services:
     build:
       context: ./apps/flask
     restart: unless-stopped
+    environment:
+      FLAG1: ${FLAG1:?Set FLAG1 in .env}
+      FLAG2: ${FLAG2:?Set FLAG2 in .env}
+      FLAG3: ${FLAG3:?Set FLAG3 in .env}
+      ADVENTURER_PASSWORD: ${ADVENTURER_PASSWORD:?Set ADVENTURER_PASSWORD in .env}
+      WARRIOR_PASSWORD: ${WARRIOR_PASSWORD:?Set WARRIOR_PASSWORD in .env}
+      LEGEND_PASSWORD: ${LEGEND_PASSWORD:?Set LEGEND_PASSWORD in .env}
     ports:
       - "8002:5000"
     networks:
