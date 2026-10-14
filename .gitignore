@@ -21,3 +21,5 @@ apps/dotnet/data/
 .DS_Store
 Thumbs.db
 Desktop.ini
+policy.yaml
+ngrok_guide.txt
